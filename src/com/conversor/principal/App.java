@@ -1,8 +1,9 @@
 package com.conversor.principal;
 
 import com.conversor.calculos.ConversorDeMonedas;
-import com.conversor.modelos.Conversion;
+import com.conversor.modelos.TasasConversion;
 
+import java.util.Map;
 import java.util.Scanner;
 
 public class App {
@@ -12,6 +13,21 @@ public class App {
         Scanner lectura = new Scanner(System.in);
         ConversorDeMonedas consulta = new ConversorDeMonedas();
 
+        Map<String, Double> mapDeTasas;
+
+        try {
+            // LLAMA A LA API UNA SOLA VEZ
+            TasasConversion tasas = consulta.obtenerTodasLasTasas();
+            mapDeTasas = tasas.conversion_rates();
+            System.out.println("Tasas de cambio cargadas exitosamente.");
+        } catch (RuntimeException e) {
+            // SI LA API FALLA, LA APP FINALIZA
+            System.out.println("Erroe. " + e.getMessage());
+            System.out.println("Finalizando la aplicación...");
+            lectura.close();
+            return;
+        }
+
         int opcion = -1;
         while (opcion != 7) {
             exibirMenu();
@@ -19,7 +35,7 @@ public class App {
                 opcion = Integer.valueOf(lectura.nextLine());
             } catch (NumberFormatException e) {
                 System.out.println("Error: Por favor, ingrese un número válido (1-7).");
-                continue; // Vuelve al inicio del loop
+                continue; // VUELVE AL INICIO DEL LOOP
             }
 
             if (opcion > 0 && opcion < 7) {
@@ -31,7 +47,7 @@ public class App {
                     monto = Double.valueOf(lectura.nextLine());
                 } catch (NumberFormatException e) {
                     System.out.println("Error: Monto no válido. Intente de nuevo.");
-                    continue; // Vuelve al inicio del loop
+                    continue; // VUELVE AL INICIO DEL LOOP
                 }
 
                 // --- 2. DEFINIR MONEDAS SEGÚN OPCIÓN ---
@@ -65,12 +81,19 @@ public class App {
                         break;
                 }
 
-                // --- 3. EJECUTAR CONSULTA Y MOSTRAR RESULTADO ---
-                Conversion conversion = consulta.convierteMonedas(monedaOrigen, monedaDestino);
+                // --- 3. CALCULAR CONVERSIÓN LOCALMENTE ---
 
-                // --- 4. CALCULAR Y MOSTRAR
-                double resultado = monto * conversion.conversion_rate();
-                System.out.println("El valor " + monto + " [" + monedaOrigen + "] corresponde al valor final de =>>> " + resultado + " [" + monedaDestino + "]\n");
+                // OBTIENE LAS TASAS DESDE EL MAP LOCAL
+                double tasaOrigen = mapDeTasas.get(monedaOrigen);
+                double tasaDestino = mapDeTasas.get(monedaDestino);
+
+                // FÓRMULA: CONVERTIR EL MONTO A LA MONEDA BASE (USD) Y LUEGO A LA MONEDA DESTINO
+                double resultado = (monto / tasaOrigen)  * tasaDestino;
+
+                // --- 4. MOSTRAR RESULTADO
+                System.out.println("El valor " + monto +
+                        " [" + monedaOrigen + "] corresponde al valor final de =>>> " +
+                        String.format("%.2f", resultado) + " [" + monedaDestino + "]\n");
 
             } else if (opcion != 7) {
                 System.out.println("Opción no válida. Elija entre 1 y 7.");
