@@ -1,4 +1,4 @@
-# 💰 Conversor de Moneda - Challenge ONE (G6)
+# 💰 Conversor de Moneda
 
 ## 📜 Descripción
 
