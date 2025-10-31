@@ -6,6 +6,8 @@ import com.conversor.modelos.RegistroConversion;
 import com.conversor.modelos.TasasConversion;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,8 @@ public class App {
 
         Scanner lectura = new Scanner(System.in);
         ConversorDeMonedas consulta = new ConversorDeMonedas();
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
         GeneradorDeArchivo generador = new GeneradorDeArchivo();
         List<RegistroConversion> historial;
@@ -88,7 +92,6 @@ public class App {
                 } else {
                     System.out.println("Error. Uno o ambos códigos de moneda no son válidos.");
                     System.out.println("Puede ver los códigos soportados en: https://www.exchangerate-api.com/docs/supported-currencies\n");
-                    // esConversionValida sigue en 'false', se saltará el bloque de cálculo
                 }
 
             } else if (opcion == 8) {
@@ -99,6 +102,7 @@ public class App {
                     System.out.println("Aún no se han realizado conversiones.\n");
                 } else {
                     historial.forEach(registro -> System.out.println(
+                            "[ " + registro.timestamp() + " ] " +
                             "Convirtió: " + registro.montoConvertir() + " [" + registro.monedaOrigen() + "]" +
                                     " -> " + String.format("%.2f", registro.montoRecibido()) + " [" + registro.monedaDestino() + "]"
                     ));
@@ -135,7 +139,8 @@ public class App {
                         String.format("%.2f", resultado) + " [" + monedaDestino + "]\n");
 
                 // --- AÑADIR HISTORIAL (EN MEMORIA) ---
-                RegistroConversion registro = new RegistroConversion(monedaOrigen, monedaDestino, monto, resultado);
+                String timestamp = LocalDateTime.now().format(formatter);
+                RegistroConversion registro = new RegistroConversion(timestamp, monedaOrigen, monedaDestino, monto, resultado);
                 historial.add(registro);
 
             }
