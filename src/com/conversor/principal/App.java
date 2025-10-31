@@ -23,7 +23,7 @@ public class App {
 
         Map<String, Double> mapDeTasas;
 
-        // --- 1. CARGAR TODAS LAS TASAS ---
+        // --- CARGAR TODAS LAS TASAS ---
         try {
             // LLAMA A LA API UNA SOLA VEZ
             TasasConversion tasas = consulta.obtenerTodasLasTasas();
@@ -37,7 +37,7 @@ public class App {
             return;
         }
 
-        // --- 2. CARGAR HISTORIAL DESDE JSON ---
+        // --- CARGAR HISTORIAL DESDE JSON ---
         try {
             historial = generador.cargarHistorial();
             System.out.println("Historial cargado exitosamente.");
@@ -48,78 +48,52 @@ public class App {
         }
 
         int opcion = -1;
-        while (opcion != 8) {
+        while (opcion != 9) {
             exibirMenu();
             try {
                 opcion = Integer.valueOf(lectura.nextLine());
             } catch (NumberFormatException e) {
-                System.out.println("Error: Por favor, ingrese un número válido (1-8).");
+                System.out.println("Error: Por favor, ingrese un número válido (1-9).");
                 continue; // VUELVE AL INICIO DEL LOOP
             }
 
+            // --- DEFINIR MONEDAS SEGÚN OPCIÓN ---
+            String monedaOrigen = "";
+            String monedaDestino = "";
+            // FLAG PARA CONTROLAS SI SE PIDE ALGÚN TIPO DE CONVERSIÓN
+            boolean esConversionValida = false;
+
             if (opcion > 0 && opcion < 7) {
-
-                // --- 3. PEDIR EL MONTO ---
-                System.out.println("Ingrese el valor que desear convertir: ");
-                double monto;
-                try {
-                    monto = Double.valueOf(lectura.nextLine());
-                } catch (NumberFormatException e) {
-                    System.out.println("Error: Monto no válido. Intente de nuevo.");
-                    continue; // VUELVE AL INICIO DEL LOOP
-                }
-
-                // --- 4. DEFINIR MONEDAS SEGÚN OPCIÓN ---
-                String monedaOrigen = "";
-                String monedaDestino = "";
-
+                // OPCIONES DEFINIDAS 1-6
                 switch (opcion) {
-                    case 1:
-                        monedaOrigen = "USD";
-                        monedaDestino = "ARS";
-                        break;
-                    case 2:
-                        monedaOrigen = "ARS";
-                        monedaDestino = "USD";
-                        break;
-                    case 3:
-                        monedaOrigen = "USD";
-                        monedaDestino = "BRL";
-                        break;
-                    case 4:
-                        monedaOrigen = "BRL";
-                        monedaDestino = "USD";
-                        break;
-                    case 5:
-                        monedaOrigen = "USD";
-                        monedaDestino = "COP";
-                        break;
-                    case 6:
-                        monedaOrigen = "COP";
-                        monedaDestino = "USD";
-                        break;
+                    case 1: monedaOrigen = "USD"; monedaDestino = "ARS"; break;
+                    case 2: monedaOrigen = "ARS"; monedaDestino = "USD"; break;
+                    case 3: monedaOrigen = "USD"; monedaDestino = "BRL"; break;
+                    case 4: monedaOrigen = "BRL"; monedaDestino = "USD"; break;
+                    case 5: monedaOrigen = "USD"; monedaDestino = "COP"; break;
+                    case 6: monedaOrigen = "COP"; monedaDestino = "USD"; break;
                 }
-
-                // --- 5. CALCULAR CONVERSIÓN LOCALMENTE ---
-
-                // OBTIENE LAS TASAS DESDE EL MAP LOCAL
-                double tasaOrigen = mapDeTasas.get(monedaOrigen);
-                double tasaDestino = mapDeTasas.get(monedaDestino);
-
-                // FÓRMULA: CONVERTIR EL MONTO A LA MONEDA BASE (USD) Y LUEGO A LA MONEDA DESTINO
-                double resultado = (monto / tasaOrigen)  * tasaDestino;
-
-                // --- 6. MOSTRAR RESULTADO ---
-                System.out.println("El valor " + monto +
-                        " [" + monedaOrigen + "] corresponde al valor final de =>>> " +
-                        String.format("%.2f", resultado) + " [" + monedaDestino + "]\n");
-
-                // --- 7. AÑADIR HISTORIAL (EN MEMORIA) ---
-                RegistroConversion registro = new RegistroConversion(monedaOrigen, monedaDestino, monto, resultado);
-                historial.add(registro);
+                esConversionValida = true;
 
             } else if (opcion == 7) {
-                // --- 8. MOSTRAR HISTORIAL ---
+                // CONVERSIÓN PERSONALIZADA
+                System.out.println("Ingrese el código de la moneda de ORIGEN (ej: EUR, JPY, USD):");
+                monedaOrigen = lectura.nextLine().toUpperCase();
+                System.out.println("Ingrese el código de la moneda de DESTINO (ej: GBP, CHF, ARS):");
+                monedaDestino = lectura.nextLine().toUpperCase();
+
+                // COMPRUEBA QUE LAS MONEDAS EXISTAN EN EL MAP
+                if (mapDeTasas.containsKey(monedaOrigen) && mapDeTasas.containsKey(monedaDestino)) {
+                    esConversionValida = true;
+                } else {
+                    System.out.println("Error. Uno o ambos códigos de moneda no son válidos.");
+                    System.out.println("Puede ver los códigos soportados en: https://www.exchangerate-api.com/docs/supported-currencies\n");
+                    // esConversionValida sigue en 'false', se saltará el bloque de cálculo
+                }
+
+            } else if (opcion == 8) {
+
+                // --- MOSTRAR HISTORIAL ---
                 System.out.println("\n**************** Historial de Conversiones ****************");
                 if (historial.isEmpty()) {
                     System.out.println("Aún no se han realizado conversiones.\n");
@@ -130,12 +104,44 @@ public class App {
                     ));
                     System.out.println("*******************************************************\n");
                 }
-            } else if (opcion != 8) {
+            } else if (opcion != 9) {
                 System.out.println("Opción no válida. Elija entre 1 y 8.");
+            }
+
+            // ESTE BLOQUE SE EJECUTA SI EL USUARIO ELIGIÓ OPCIÓN 1-6,
+            // O SI FUE LA 7 Y PASÓ LA VALIDACIÓN DE LAS MONEDAS
+            if (esConversionValida) {
+
+                // --- PEDIR EL MONTO ---
+                System.out.println("Ingrese el valor que desear convertir: ");
+                double monto;
+                try {
+                    monto = Double.valueOf(lectura.nextLine());
+                } catch (NumberFormatException e) {
+                    System.out.println("Error: Monto no válido. Intente de nuevo.");
+                    continue; // VUELVE AL INICIO DEL LOOP
+                }
+
+                // --- CALCULAR CONVERSIÓN LOCALMENTE ---
+                // OBTIENE LAS TASAS DESDE EL MAP LOCAL
+                double tasaOrigen = mapDeTasas.get(monedaOrigen);
+                double tasaDestino = mapDeTasas.get(monedaDestino);
+                // FÓRMULA: CONVERTIR EL MONTO A LA MONEDA BASE (USD) Y LUEGO A LA MONEDA DESTINO
+                double resultado = (monto / tasaOrigen)  * tasaDestino;
+
+                // --- MOSTRAR RESULTADO ---
+                System.out.println("El valor " + monto +
+                        " [" + monedaOrigen + "] corresponde al valor final de =>>> " +
+                        String.format("%.2f", resultado) + " [" + monedaDestino + "]\n");
+
+                // --- AÑADIR HISTORIAL (EN MEMORIA) ---
+                RegistroConversion registro = new RegistroConversion(monedaOrigen, monedaDestino, monto, resultado);
+                historial.add(registro);
+
             }
         }
 
-        // --- 9. GUARDAR HISTORIAL EN JSON ---
+        // --- GUARDAR HISTORIAL EN JSON ---
         try {
             generador.guardarHistorial(historial);
             System.out.println("Historial guardado exitosamente en " + generador.get_NOMBRE_ARCHIVO());
@@ -159,8 +165,9 @@ public class App {
                 4) Real brasileño =>> Dólar
                 5) Dólar ==> Peso colombiano
                 6) Peso colombiano ==> Dólar
-                7) Ver historial de conversiones
-                8) Salir
+                7) Convertir otra moneda (Personalizado)
+                8) Ver historial de conversiones
+                9) Salir
                 Elija una opción válida:
                 *******************************************************
                 """);
